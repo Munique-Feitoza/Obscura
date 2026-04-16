@@ -1,0 +1,23 @@
+[package]
+name = "obscura"
+version = "0.1.0"
+edition = "2021"
+description = "Analisador estático heurístico para binários ELF x86_64"
+license = "MIT"
+authors = ["Munique Feitoza"]
+
+[dependencies]
+# Parsing de formatos binários (ELF, PE, Mach-O)
+goblin = "0.9"
+
+# Disassembler x86/x86_64 de alta performance
+iced-x86 = "1.21"
+
+# Busca e processamento com expressões regulares
+regex = "1.10"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
