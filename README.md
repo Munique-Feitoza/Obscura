@@ -132,7 +132,3 @@ Obscura/
 - Suporta apenas binários ELF x86_64. Arquiteturas ARM, MIPS ou formatos PE/Mach-O estão fora do escopo.
 - Falsos positivos são esperados em binários legítimos que fazem uso direto de syscalls (ex: runtime do Go, musl-libc).
 - Varredura de IoCs pode gerar falsos positivos em binários legítimos que contêm literais de IP em strings de dados.
-
-## Licença
-
-MIT
