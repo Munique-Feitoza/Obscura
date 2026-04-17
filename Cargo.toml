@@ -1,8 +1,8 @@
 [package]
 name = "obscura"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "Analisador estático heurístico para binários ELF x86_64"
+description = "Sentinela de segurança em tempo real para Linux — análise ELF + monitoramento inotify"
 license = "MIT"
 authors = ["Munique Feitoza"]
 
@@ -13,8 +13,27 @@ goblin = "0.9"
 # Disassembler x86/x86_64 de alta performance
 iced-x86 = "1.21"
 
-# Busca e processamento com expressões regulares
+# Expressões regulares
 regex = "1.10"
+
+# Monitoramento de sistema de arquivos via inotify
+notify = "6"
+
+# Serialização (config JSON)
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Timestamps nos logs
+chrono = { version = "0.4", features = ["serde"] }
+
+# Notificações desktop (libnotify / D-Bus)
+notify-rust = "4"
+
+# CLI com subcomandos
+clap = { version = "4", features = ["derive"] }
+
+# Atributos estendidos (xattr) para detectar origem de download
+xattr = "1"
 
 [profile.release]
 opt-level = 3

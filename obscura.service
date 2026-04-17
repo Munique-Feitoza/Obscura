@@ -1,0 +1,29 @@
+# Instalar em: ~/.config/systemd/user/obscura.service
+# Ou use: obscura install
+#
+# Ativar:
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now obscura
+#   journalctl --user -u obscura -f
+
+[Unit]
+Description=Obscura — Sentinela de Segurança em Tempo Real
+Documentation=https://github.com/muniquefeitoza/obscura
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/obscura daemon
+Restart=on-failure
+RestartSec=5
+
+# Acesso ao D-Bus da sessão (necessário para notificações desktop)
+Environment=DISPLAY=:0
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+
+# Hardening mínimo (não quebra xattr e inotify)
+NoNewPrivileges=true
+PrivateTmp=false
+
+[Install]
+WantedBy=default.target
