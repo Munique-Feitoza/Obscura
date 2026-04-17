@@ -116,5 +116,13 @@ fn deve_ignorar(caminho: &Path, config: &Config) -> bool {
         .unwrap_or_default()
         .to_lowercase();
 
-    config.extensoes_ignoradas.iter().any(|ign| *ign == ext)
+    if config.extensoes_ignoradas.iter().any(|ign| *ign == ext) {
+        return true;
+    }
+
+    // Prefixo de caminho ignorado (ex: /tmp/node-compile-cache)
+    let caminho_str = caminho.to_string_lossy();
+    config.caminhos_ignorados.iter().any(|ignorado| {
+        caminho_str.starts_with(ignorado.to_string_lossy().as_ref())
+    })
 }

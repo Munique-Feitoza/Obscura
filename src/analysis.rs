@@ -233,7 +233,8 @@ fn varrer_iocs(dados: &[u8]) -> Vec<String> {
 }
 
 fn ip_privado(ip: &str) -> bool {
-    ip == "0.0.0.0"
+    // RFC 1918 / reservados
+    if ip == "0.0.0.0"
         || ip == "127.0.0.1"
         || ip == "255.255.255.255"
         || ip.starts_with("192.168.")
@@ -257,6 +258,27 @@ fn ip_privado(ip: &str) -> bool {
         || ip.starts_with("169.254.")
         || ip.starts_with("224.")
         || ip.starts_with("240.")
+    {
+        return true;
+    }
+
+    // OIDs ASN.1 / X.509 — parecem IPs mas são identificadores de padrão.
+    // Prefixo "1.3.6." = internet, "2.5." = X.500/X.509, "2.16." = country codes.
+    if ip.starts_with("1.3.6.")
+        || ip.starts_with("2.5.")
+        || ip.starts_with("2.16.")
+        || ip.starts_with("1.2.840.")
+        || ip.starts_with("0.9.")
+    {
+        return true;
+    }
+
+    // Octeto inicial com zero à esquerda (ex: "045.x.x.x") — inválido como IP real
+    if ip.starts_with('0') && ip.len() > 1 && ip.as_bytes().get(1) != Some(&b'.') {
+        return true;
+    }
+
+    false
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

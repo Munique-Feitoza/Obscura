@@ -5,6 +5,8 @@ use std::path::PathBuf;
 pub struct Config {
     /// Diretórios monitorados pelo daemon em tempo real.
     pub diretorios_monitorados: Vec<PathBuf>,
+    /// Prefixos de caminho ignorados pelo daemon (ex: "/tmp/node-compile-cache").
+    pub caminhos_ignorados: Vec<PathBuf>,
     /// Entropia mínima (bits/byte) para disparar alerta. Padrão: 7.0.
     pub limiar_entropia: f64,
     /// Caminho do arquivo de log.
@@ -23,8 +25,13 @@ impl Default for Config {
         Config {
             diretorios_monitorados: vec![
                 home.join("Downloads"),
-                PathBuf::from("/tmp"),
                 home.join(".local/bin"),
+            ],
+            caminhos_ignorados: vec![
+                PathBuf::from("/tmp/node-compile-cache"),
+                PathBuf::from("/tmp/python-languageserver-cancellation"),
+                PathBuf::from("/tmp/.org.chromium"),
+                PathBuf::from("/tmp/claude-"),
             ],
             limiar_entropia: 7.0,
             caminho_log: home.join(".local/share/obscura/obscura.log"),
