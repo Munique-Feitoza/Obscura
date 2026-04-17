@@ -44,7 +44,7 @@ flowchart TD
 
 ```bash
 # Clonar e compilar
-git clone https://github.com/muniquefeitoza/obscura
+git clone git@github.com:Munique-Feitoza/Obscura.git
 cd obscura
 cargo build --release
 
