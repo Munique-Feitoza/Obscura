@@ -35,6 +35,16 @@ pub fn imprimir_resultado_completo(r: &ResultadoAnalise) {
     println!("{cor}╠══════════════════════════════════════════════════════════╣{RESET}");
     println!("{cor}║{RESET}  Alvo      : {}", r.caminho.display());
     println!(
+        "{cor}║{RESET}  Tamanho   : {}{}",
+        formatar_tamanho(r.tamanho_arquivo),
+        if r.arquivo_truncado {
+            format!(" {CINZA}[truncado para análise, primeiros {} MiB]{RESET}",
+                crate::analysis::TAMANHO_MAXIMO_LEITURA / (1024 * 1024))
+        } else {
+            String::new()
+        }
+    );
+    println!(
         "{cor}║{RESET}  Veredito  : {cor}{}{RESET}",
         r.nivel_ameaca.nome()
     );
@@ -70,8 +80,41 @@ pub fn imprimir_resultado_completo(r: &ResultadoAnalise) {
             "{cor}║{RESET}  IoCs detectados ({}):",
             r.iocs.len()
         );
-        for ip in &r.iocs {
-            println!("{cor}║{RESET}    → {VERMELHO}{ip}{RESET}");
+        for ioc in &r.iocs {
+            println!(
+                "{cor}║{RESET}    [{}] {VERMELHO}{}{RESET}",
+                ioc.tipo.rotulo(),
+                ioc.valor
+            );
+        }
+    }
+
+    if !r.secoes_anomalas.is_empty() {
+        println!("{cor}╠══════════════════════════════════════════════════════════╣{RESET}");
+        println!(
+            "{cor}║{RESET}  Seções ELF não-padrão com entropia alta ({}):",
+            r.secoes_anomalas.len()
+        );
+        for sec in &r.secoes_anomalas {
+            println!(
+                "{cor}║{RESET}    → {VERMELHO}{}{RESET} {CINZA}({:.3} bits, {} bytes){RESET}",
+                sec.nome, sec.entropia, sec.tamanho
+            );
+        }
+    }
+
+    if !r.imports_suspeitos.is_empty() {
+        println!("{cor}╠══════════════════════════════════════════════════════════╣{RESET}");
+        println!(
+            "{cor}║{RESET}  Imports suspeitos ({}):",
+            r.imports_suspeitos.len()
+        );
+        for imp in &r.imports_suspeitos {
+            println!(
+                "{cor}║{RESET}    → {VERMELHO}{}{RESET} {CINZA}[{}]{RESET}",
+                imp.nome,
+                imp.categoria.rotulo()
+            );
         }
     }
 
@@ -125,9 +168,20 @@ fn imprimir_console(r: &ResultadoAnalise) {
         println!("{cor}│{RESET}  [!] Arquivo de origem: Internet (xattr confirmado)");
     }
     if !r.iocs.is_empty() {
+        let amostra: Vec<String> = r
+            .iocs
+            .iter()
+            .take(5)
+            .map(|i| format!("[{}] {}", i.tipo.rotulo(), i.valor))
+            .collect();
+        let sufixo = if r.iocs.len() > 5 {
+            format!(" (+{} outros)", r.iocs.len() - 5)
+        } else {
+            String::new()
+        };
         println!(
-            "{cor}│{RESET}  [!] IPs externos: {}",
-            r.iocs.join(", ")
+            "{cor}│{RESET}  [!] IoCs: {}{sufixo}",
+            amostra.join(", ")
         );
     }
     println!("{cor}└──────────────────────────────────────────────────────────┘{RESET}");
@@ -137,10 +191,15 @@ fn imprimir_console(r: &ResultadoAnalise) {
 // Log em arquivo (tail -f compatível)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Tamanho máximo do log antes de rotacionar. Acima disso, o arquivo atual
+/// é renomeado para `<log>.1` e uma nova trilha começa. Um nível de retenção.
+const TAMANHO_MAXIMO_LOG: u64 = 5 * 1024 * 1024; // 5 MiB
+
 fn escrever_log(r: &ResultadoAnalise, log_path: &Path) -> std::io::Result<()> {
     if let Some(parent) = log_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
+    rotar_log_se_necessario(log_path)?;
     let mut file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -159,6 +218,35 @@ fn escrever_log(r: &ResultadoAnalise, log_path: &Path) -> std::io::Result<()> {
         nelf = r.instrucoes_suspeitas.len(),
         caminho = r.caminho.display(),
     )
+}
+
+/// Rotaciona o log quando ele excede [`TAMANHO_MAXIMO_LOG`]. Mantém uma única
+/// cópia `<log>.1`; o histórico anterior é descartado.
+fn rotar_log_se_necessario(log_path: &Path) -> std::io::Result<()> {
+    let Ok(metadata) = std::fs::metadata(log_path) else {
+        // Arquivo ainda não existe — primeira escrita, sem rotação.
+        return Ok(());
+    };
+    if metadata.len() < TAMANHO_MAXIMO_LOG {
+        return Ok(());
+    }
+    let rotacionado = log_path.with_extension(
+        log_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| format!("{e}.1"))
+            .unwrap_or_else(|| "1".into()),
+    );
+    // Em caso de falha (FS readonly, sem permissão), seguimos sem rotação
+    // para não bloquear o alerta — só logamos no stderr.
+    if let Err(e) = std::fs::rename(log_path, &rotacionado) {
+        eprintln!(
+            "[OBSCURA] aviso: falha ao rotacionar log '{}' → '{}': {e}",
+            log_path.display(),
+            rotacionado.display()
+        );
+    }
+    Ok(())
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -191,7 +279,18 @@ fn enviar_notificacao_desktop(r: &ResultadoAnalise) {
         linhas.push("⚠ Executável baixado da internet!".into());
     }
     if !r.iocs.is_empty() {
-        linhas.push(format!("IPs suspeitos: {}", r.iocs.join(", ")));
+        let amostra: Vec<String> = r
+            .iocs
+            .iter()
+            .take(3)
+            .map(|i| format!("[{}] {}", i.tipo.rotulo(), i.valor))
+            .collect();
+        let sufixo = if r.iocs.len() > 3 {
+            format!(" (+{})", r.iocs.len() - 3)
+        } else {
+            String::new()
+        };
+        linhas.push(format!("IoCs: {}{sufixo}", amostra.join(", ")));
     }
     if !r.instrucoes_suspeitas.is_empty() {
         linhas.push(format!(
@@ -249,5 +348,21 @@ fn flag_str(valor: bool, cor: &str) -> String {
         format!("{cor}sim ⚠{RESET}")
     } else {
         "não".into()
+    }
+}
+
+/// Formata bytes em unidade humana (B / KiB / MiB / GiB).
+fn formatar_tamanho(bytes: u64) -> String {
+    const KIB: u64 = 1024;
+    const MIB: u64 = KIB * 1024;
+    const GIB: u64 = MIB * 1024;
+    if bytes >= GIB {
+        format!("{:.2} GiB", bytes as f64 / GIB as f64)
+    } else if bytes >= MIB {
+        format!("{:.2} MiB", bytes as f64 / MIB as f64)
+    } else if bytes >= KIB {
+        format!("{:.2} KiB", bytes as f64 / KIB as f64)
+    } else {
+        format!("{bytes} B")
     }
 }
