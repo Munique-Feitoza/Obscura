@@ -16,7 +16,7 @@ use std::process;
 #[command(
     name = "obscura",
     about = "Sentinela de segurança em tempo real para Linux",
-    version = "0.2.0",
+    version = "0.3.0",
     long_about = None
 )]
 struct Cli {
@@ -60,7 +60,7 @@ const BANNER: &str = "\x1b[1;34m
  ██║   ██║██╔══██╗╚════██║██║     ██║   ██║██╔══██╗██╔══██║
  ╚██████╔╝██████╔╝███████║╚██████╗╚██████╔╝██║  ██║██║  ██║
   ╚═════╝ ╚═════╝ ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
-\x1b[0m\x1b[90m  Sentinela de Segurança — by Munique Feitoza — v0.2.0\x1b[0m
+\x1b[0m\x1b[90m  Sentinela de Segurança — by Munique Feitoza — v0.3.0\x1b[0m
 ";
 
 // ─────────────────────────────────────────────────────────────────────────────
