@@ -343,8 +343,8 @@ fn analisar_instrucoes(endereco_base: u64, bytes_texto: &[u8]) -> Vec<InstrucaoS
                 buffer.clear();
                 formatador.format(&instrucao, &mut buffer);
                 let operandos = buffer
-                    .splitn(2, ' ')
-                    .nth(1)
+                    .split_once(' ')
+                    .map(|(_, rest)| rest)
                     .unwrap_or("")
                     .to_string();
                 suspeitas.push(InstrucaoSuspeita {

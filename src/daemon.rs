@@ -116,7 +116,7 @@ fn deve_ignorar(caminho: &Path, config: &Config) -> bool {
         .unwrap_or_default()
         .to_lowercase();
 
-    if config.extensoes_ignoradas.iter().any(|ign| *ign == ext) {
+    if config.extensoes_ignoradas.contains(&ext) {
         return true;
     }
 

@@ -5,7 +5,7 @@ mod daemon;
 
 use alert::imprimir_resultado_completo;
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ fn main() {
 // Análise pontual
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn executar_analise(caminho: &PathBuf) {
+fn executar_analise(caminho: &Path) {
     match analysis::analisar_arquivo(caminho) {
         Ok(resultado) => imprimir_resultado_completo(&resultado),
         Err(e) => {
