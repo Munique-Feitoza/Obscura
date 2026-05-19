@@ -17,6 +17,32 @@ pub struct Config {
     pub extensoes_ignoradas: Vec<String>,
     /// Nível mínimo de ameaça para alertar no daemon (0=todos, 1=baixo+, 2=médio+).
     pub nivel_minimo_alerta: u8,
+    /// Configuração da ação de quarentena (move/desarma arquivos de alto risco).
+    #[serde(default)]
+    pub quarentena: QuarentenaConfig,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct QuarentenaConfig {
+    /// Liga a ação de quarentena. Padrão: false (somente alerta).
+    pub ativa: bool,
+    /// Nível mínimo de ameaça para acionar a quarentena (4 = CRITICO).
+    pub nivel_minimo: u8,
+    /// Diretório onde os arquivos quarentenados são movidos.
+    pub diretorio: PathBuf,
+    /// Remove o bit +x do arquivo antes de mover (defesa em profundidade).
+    pub remover_executavel: bool,
+}
+
+impl Default for QuarentenaConfig {
+    fn default() -> Self {
+        QuarentenaConfig {
+            ativa: false,
+            nivel_minimo: 4, // CRITICO
+            diretorio: home_dir().join(".local/share/obscura/quarentena"),
+            remover_executavel: true,
+        }
+    }
 }
 
 impl Default for Config {
@@ -51,6 +77,7 @@ impl Default for Config {
                 ".md".into(),
             ],
             nivel_minimo_alerta: 2,
+            quarentena: QuarentenaConfig::default(),
         }
     }
 }

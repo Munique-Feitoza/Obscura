@@ -33,6 +33,9 @@ enum Comando {
     Analyze {
         /// Caminho do arquivo a analisar
         arquivo: PathBuf,
+        /// Emite o resultado em JSON (útil para integração com SIEM / pipelines)
+        #[arg(long)]
+        json: bool,
     },
     /// Inicia o daemon de monitoramento em tempo real via inotify
     Daemon {
@@ -68,9 +71,13 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Comando::Analyze { arquivo }) => {
-            println!("{BANNER}");
-            executar_analise(&arquivo);
+        Some(Comando::Analyze { arquivo, json }) => {
+            if json {
+                executar_analise_json(&arquivo);
+            } else {
+                println!("{BANNER}");
+                executar_analise(&arquivo);
+            }
         }
         Some(Comando::Daemon { config }) => {
             println!("{BANNER}");
@@ -108,6 +115,29 @@ fn executar_analise(caminho: &Path) {
         Ok(resultado) => imprimir_resultado_completo(&resultado),
         Err(e) => {
             eprintln!("\x1b[31m[ERRO] Falha ao analisar '{}': {e}\x1b[0m", caminho.display());
+            process::exit(1);
+        }
+    }
+}
+
+/// Emite o resultado em JSON na stdout. Sem banner, sem cores — destinado
+/// a integração com pipelines, SIEM (Splunk/Loki/ELK) ou jq.
+fn executar_analise_json(caminho: &Path) {
+    match analysis::analisar_arquivo(caminho) {
+        Ok(resultado) => match serde_json::to_string_pretty(&resultado) {
+            Ok(json) => println!("{json}"),
+            Err(e) => {
+                eprintln!(r#"{{"erro":"falha ao serializar","detalhe":"{e}"}}"#);
+                process::exit(1);
+            }
+        },
+        Err(e) => {
+            let msg = e.to_string().replace('"', "'");
+            eprintln!(
+                r#"{{"erro":"falha ao analisar","arquivo":"{}","detalhe":"{}"}}"#,
+                caminho.display(),
+                msg
+            );
             process::exit(1);
         }
     }
