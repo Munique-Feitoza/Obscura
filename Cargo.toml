@@ -3,7 +3,7 @@ name = "obscura"
 version = "0.3.0"
 edition = "2021"
 description = "Sentinela de segurança em tempo real para Linux — análise ELF + monitoramento inotify"
-license = "MIT"
+license = "GPL-2.0-only"
 authors = ["Munique Feitoza"]
 
 [dependencies]

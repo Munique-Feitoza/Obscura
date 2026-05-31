@@ -316,3 +316,7 @@ Cobertura: entropia (vazia, uniforme, pseudoaleatória), detecção de formato c
 - A origem via xattr depende do navegador/gerenciador de downloads ter gravado o atributo — `curl`/`wget` não definem o xattr
 - Log mantém apenas uma cópia rotacionada (`obscura.log.1`); para retenção maior, use logrotate externo
 - Quarentena é uma ação destrutiva (rename) — recomendada apenas com `nivel_minimo: 4` (CRITICO)
+
+## Licença
+
+GPL v2 — veja [LICENSE](LICENSE) para o texto completo.
